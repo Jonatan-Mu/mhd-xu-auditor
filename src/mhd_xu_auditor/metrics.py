@@ -76,35 +76,38 @@ def tail_energy_above(kk: np.ndarray, Ek: np.ndarray, kcut: float) -> float:
     return float(np.sum(Ek[m]))
 
 
-def regularity_ratio_rho(omega_or_hat: np.ndarray, Lx: float, Ly: float) -> float:
+def regularity_ratio_rho(omega_hat: np.ndarray, Lx: float, Ly: float) -> float:
     """
-    Snapshot regularity ratio (high-k sensitive, no logs):
-        rho = (Σ k^4 |ω̂|^2) / (Σ k^2 |ω̂|^2 + eps)
+    Snapshot regularity ratio:
+        rho = (Σ k^4 |ω̂|^2) / (Σ k^2 |ω̂|^2 + eps).
 
-    Accepts omega in physical space OR omega_hat in spectral space.
+    Robust version:
+    - rescales |ω̂|^2 by its maximum to prevent overflow in sums.
+      This does NOT change rho (scale cancels).
     """
-    omega_hat = _as_hat(omega_or_hat)
-
-    # (Assumes square N×N grid as in the rest of the repo.)
     N = omega_hat.shape[0]
-    if omega_hat.ndim != 2 or omega_hat.shape[0] != omega_hat.shape[1]:
-        raise ValueError(f"regularity_ratio_rho expects square 2D array; got shape={omega_hat.shape}")
-
     kg = make_kgrid(N, Lx, Ly)
-    k2 = np.asarray(kg.k2, dtype=np.longdouble)
+    k2 = kg.k2
 
-    # |omega_hat|^2
-    w2 = (omega_hat.real.astype(np.longdouble)**2 + omega_hat.imag.astype(np.longdouble)**2)
+    w2 = np.abs(omega_hat) ** 2
+    w2_max = float(np.max(w2))
 
-    num = np.sum((k2**2) * w2)
-    den = np.sum(k2 * w2)
+    if (not np.isfinite(w2_max)) or (w2_max <= 0.0):
+        raise ValueError("omega_hat appears zero or invalid; cannot compute rho.")
 
-    # If den is ~0 (e.g. omega ≈ 0), define rho = 0 (safe, not NaN)
-    if not np.isfinite(num) or not np.isfinite(den):
-        return float("nan")
-    if den <= _TINY:
-        return 0.0
-    return float(num / (den + _EPS))
+    w2 = w2 / w2_max  # scale cancels in ratio, avoids overflow
+
+    num = float(np.sum((k2 ** 2) * w2))
+    den = float(np.sum(k2 * w2)) + 1e-300
+    rho = num / den
+
+    if not np.isfinite(rho):
+        raise ValueError(
+            f"rho not finite (num={num:.3e}, den={den:.3e}). "
+            "Likely wrong input_kind (physical vs spectral) or FFT scaling mismatch."
+        )
+
+    return rho
 
 
 def compute_metrics(
@@ -140,3 +143,4 @@ def compute_metrics(
 
     return MetricResult(BI=float(BI), tailE=float(tailE), rho=float(rho),
                         edgeE=float(edge), midE=float(mid), kcut=float(kcut))
+
