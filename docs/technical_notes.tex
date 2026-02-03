@@ -1,0 +1,49 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\title{MHD Xu-Auditor: Technical Notes}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+
+\section{Model and Diagnostics}
+We consider 2D incompressible resistive MHD in vorticity--potential form. Let \(\phi\) be the stream function and \(A\) the magnetic potential. The velocity and magnetic field are
+\begin{equation}
+\mathbf{u}=\nabla^\perp \phi=(\partial_y\phi, -\partial_x\phi),
+\qquad
+\mathbf{B}=\nabla^\perp A=(\partial_y A, -\partial_x A).
+\end{equation}
+The vorticity \(\omega\) and current \(j\) are
+\begin{equation}
+\omega=-\Delta \phi,
+\qquad
+j=-\Delta A.
+\end{equation}
+The evolution is
+\begin{equation}
+\partial_t \omega = -J(\phi,\omega) + J(A,j) + \nu \Delta \omega,
+\qquad
+\partial_t A = -J(\phi,A) + \eta \Delta A,
+\end{equation}
+where \(J(f,g)=\partial_x f\,\partial_y g-\partial_y f\,\partial_x g\).
+
+\section{Shell spectrum}
+Given spectral coefficients \(\hat\omega(\mathbf{k})\) and \(\hat A(\mathbf{k})\), define \(\hat\phi(\mathbf{k})=-\hat\omega(\mathbf{k})/|\mathbf{k}|^2\) for \(\mathbf{k}\neq 0\). The combined kinetic+magnetic mode energy is
+\begin{equation}
+E_{\mathbf{k}} = \frac12 |\mathbf{k}|^2\left(|\hat\phi(\mathbf{k})|^2 + |\hat A(\mathbf{k})|^2\right).
+\end{equation}
+The shell spectrum is obtained by binning modes by \(k=\lfloor |\mathbf{k}|/k_0 \rceil\) with \(k_0=2\pi/L\).
+
+\section{Blocking Index and Tail Energy}
+Let \(k_c\) denote the effective cutoff (hard mask) or roll-off onset (smooth filter). The auditor reports
+\begin{itemize}
+\item Tail energy: \(\mathrm{tailE}=\sum_{k\ge k_c} E(k)\).
+\item Blocking Index (BI): ratio of mean energy near the cutoff to mean energy in an interior band,
+\begin{equation}
+\mathrm{BI} = \frac{\langle E(k)\rangle_{k\in[0.9k_c,k_c]}}{\langle E(k)\rangle_{k\in[0.55k_c,0.65k_c]}}.
+\end{equation}
+\end{itemize}
+
+\end{document}

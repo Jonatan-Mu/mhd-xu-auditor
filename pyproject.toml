@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhd-xu-auditor"
+version = "0.1.0"
+description = "Xu-based spectral fidelity auditor for 2D MHD snapshots (Blocking Index, tail energy, rho, and paper-grade exports)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "MHD Xu-Auditor Authors" }
+]
+keywords = ["MHD", "spectral", "diagnostics", "Xu", "Orszag-Tang", "aliasing", "blocking-index"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "numpy>=2.0",
+  "scipy>=1.14",
+  "matplotlib>=3.9",
+  "pandas>=2.2",
+  "h5py>=3.12",
+  "tqdm>=4.66"
+]
+
+[project.urls]
+Homepage = "https://github.com/<YOUR_ORG_OR_USER>/mhd-xu-auditor"
+Repository = "https://github.com/<YOUR_ORG_OR_USER>/mhd-xu-auditor"
+"Bug Tracker" = "https://github.com/<YOUR_ORG_OR_USER>/mhd-xu-auditor/issues"
+
+[project.scripts]
+xu-auditor = "mhd_xu_auditor.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
