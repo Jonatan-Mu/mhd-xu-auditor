@@ -1,11 +1,16 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use this software, please cite it."
+title: "MHD Xu-Auditor: A spectral fidelity sensor for 2D incompressible MHD"
+type: software
 authors:
-  - family-names: "Muñoz Rodríguez"
+  - family-names: "Mu"
     given-names: "Jonatan"
-    orcid: "https://orcid.org/0009-0000-3977-1898"
-title: "MHD Xu-Auditor: High-Fidelity Spectral Diagnostics for 2D MHD"
-version: 0.1.0
-doi: 10.5281/zenodo.18467205
-date-released: 2026-02-03
+doi: "10.5281/zenodo.18467205"
 url: "https://github.com/Jonatan-Mu/mhd-xu-auditor"
+license: MIT
+keywords:
+  - MHD
+  - spectral methods
+  - diagnostics
+  - Xu method
+  - aliasing
