@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 import numpy as np
-
 from .filters import make_kgrid
+from .spectra import omega_to_streamfunc_hat
 
 
 @dataclass
@@ -17,46 +17,10 @@ class MetricResult:
     kcut: float
 
 
-# -----------------------------
-# Basic helpers
-# -----------------------------
-_TINY = np.finfo(np.float64).tiny  # ~2e-308
-_EPS  = 1e-300                     # stable denom guard
-
-
-def sanity_check_field(arr: np.ndarray, name: str) -> None:
-    """Hard fail only for NaN/Inf. Do NOT fail for small magnitudes."""
-    if arr is None:
-        return
-    arr = np.asarray(arr)
-    if not np.isfinite(arr).all():
-        raise ValueError(f"{name} contains NaN/Inf.")
-
-
-def _as_hat(field_or_hat: np.ndarray) -> np.ndarray:
-    """
-    Accept either:
-      - physical field (real ndarray) -> return normalized fft2(field)/N
-      - spectral field (complex ndarray) -> return as complex128
-    Convention: u_hat = fft2(u)/u.size
-    """
-    arr = np.asarray(field_or_hat)
-    sanity_check_field(arr, "omega/A input")
-
-    # If it's complex with nontrivial imag part, assume spectral.
-    if np.iscomplexobj(arr) and np.nanmax(np.abs(arr.imag)) > 0:
-        return arr.astype(np.complex128, copy=False)
-
-    # Otherwise assume physical, FFT-normalize
-    arr_real = np.asarray(arr, dtype=np.float64)
-    return (np.fft.fft2(arr_real) / arr_real.size).astype(np.complex128, copy=False)
-
-
 def _band_mean(kk: np.ndarray, Ek: np.ndarray, a: float, b: float) -> float:
     m = (kk >= a) & (kk <= b)
     if np.count_nonzero(m) == 0:
         return 0.0
-    # Ek may contain exact zeros -> fine
     return float(np.mean(Ek[m]))
 
 
@@ -66,8 +30,8 @@ def blocking_index(kk: np.ndarray, Ek: np.ndarray, kcut: float) -> Tuple[float, 
     Returns (BI, edge_mean, mid_mean).
     """
     edge = _band_mean(kk, Ek, 0.90 * kcut, 1.00 * kcut)
-    mid  = _band_mean(kk, Ek, 0.55 * kcut, 0.65 * kcut)
-    BI = edge / (mid + _EPS)
+    mid = _band_mean(kk, Ek, 0.55 * kcut, 0.65 * kcut)
+    BI = edge / (mid + 1e-300)
     return float(BI), float(edge), float(mid)
 
 
@@ -80,67 +44,41 @@ def regularity_ratio_rho(omega_hat: np.ndarray, Lx: float, Ly: float) -> float:
     """
     Snapshot regularity ratio:
         rho = (Σ k^4 |ω̂|^2) / (Σ k^2 |ω̂|^2 + eps).
-
-    Robust version:
-    - rescales |ω̂|^2 by its maximum to prevent overflow in sums.
-      This does NOT change rho (scale cancels).
+    This is deliberately high-k sensitive and avoids logs.
     """
     N = omega_hat.shape[0]
     kg = make_kgrid(N, Lx, Ly)
     k2 = kg.k2
-
     w2 = np.abs(omega_hat) ** 2
-    w2_max = float(np.max(w2))
-
-    if (not np.isfinite(w2_max)) or (w2_max <= 0.0):
-        raise ValueError("omega_hat appears zero or invalid; cannot compute rho.")
-
-    w2 = w2 / w2_max  # scale cancels in ratio, avoids overflow
 
     num = float(np.sum((k2 ** 2) * w2))
     den = float(np.sum(k2 * w2)) + 1e-300
-    rho = num / den
+    return num / den
 
-    if not np.isfinite(rho):
+
+def sanity_check_field(arr: np.ndarray, name: str, min_nonzero: float = 1e-30) -> None:
+    if arr is None:
+        return
+    if not np.isfinite(arr).all():
+        raise ValueError(f"{name} contains NaN/Inf.")
+    maxabs = float(np.max(np.abs(arr)))
+    if maxabs < min_nonzero:
         raise ValueError(
-            f"rho not finite (num={num:.3e}, den={den:.3e}). "
-            "Likely wrong input_kind (physical vs spectral) or FFT scaling mismatch."
+            f"{name} appears ~zero (max|.|={maxabs:.3e}). "
+            "This usually means the array was misinterpreted (spectral vs physical) or empty."
         )
-
-    return rho
 
 
 def compute_metrics(
     kk: np.ndarray,
     Ek: np.ndarray,
-    omega_or_hat: np.ndarray,
+    omega_hat: np.ndarray,
     Lx: float,
     Ly: float,
-    kcut: float,
+    kcut: float
 ) -> MetricResult:
-    kk = np.asarray(kk, dtype=np.float64)
-    Ek = np.asarray(Ek, dtype=np.float64)
-
-    sanity_check_field(kk, "kk")
     sanity_check_field(Ek, "Ek")
-
-    if kcut <= 0 or not np.isfinite(kcut):
-        raise ValueError(f"kcut must be positive finite. Got kcut={kcut}")
-
-    # Guard: sometimes tiny negative Ek can appear from numerical noise; clip it
-    if np.any(Ek < 0):
-        Ek = np.maximum(Ek, 0.0)
-
-    # If spectrum is effectively empty, don’t emit NaNs.
-    Etot = float(np.sum(Ek))
-    rho = regularity_ratio_rho(omega_or_hat, Lx, Ly)
-
-    if (not np.isfinite(Etot)) or Etot <= _TINY:
-        return MetricResult(BI=0.0, tailE=0.0, rho=float(rho), edgeE=0.0, midE=0.0, kcut=float(kcut))
-
     BI, edge, mid = blocking_index(kk, Ek, kcut)
     tailE = tail_energy_above(kk, Ek, kcut)
-
-    return MetricResult(BI=float(BI), tailE=float(tailE), rho=float(rho),
-                        edgeE=float(edge), midE=float(mid), kcut=float(kcut))
-
+    rho = regularity_ratio_rho(omega_hat, Lx, Ly)
+    return MetricResult(BI=BI, tailE=tailE, rho=rho, edgeE=edge, midE=mid, kcut=kcut)

@@ -90,4 +90,4 @@ mhd-xu-auditor/
 MIT. See `LICENSE`.
 
 ## Citation / DOI
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18467205.svg)](https://doi.org/10.5281/zenodo.18467205)
+If you archive a release on Zenodo, add the DOI badge here and cite the tagged version.
