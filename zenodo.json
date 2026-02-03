@@ -1,0 +1,19 @@
+{
+  "title": "MHD Xu-Auditor: A spectral fidelity sensor for 2D incompressible MHD",
+  "description": "Xu-Auditor audits high-frequency content in MHD snapshots and reports spectral blocking / aliasing via BI, tail energy and a regularity ratio rho. Exports publication-ready vector PDFs and CSV metrics.",
+  "license": "MIT",
+  "keywords": ["MHD", "spectral methods", "aliasing", "spectral blocking", "diagnostics", "Xu method"],
+  "creators": [
+    {
+      "name": "Mu, Jonatan",
+      "affiliation": ""
+    }
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.5281/zenodo.18467205",
+      "scheme": "doi"
+    }
+  ]
+}
