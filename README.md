@@ -1,5 +1,7 @@
 # MHD Xu-Auditor
 
+![Tests](https://github.com/Jonatan-Mu/mhd-xu-auditor/actions/workflows/main.yml/badge.svg)
+
 **MHD Xu-Auditor** is a *spectral fidelity sensor* for 2D incompressible MHD: it audits high-frequency content in simulation or experimental snapshots and reports whether the data are being corrupted by spectral blocking / aliasing artifacts.
 
 The core idea is to complement (or replace) traditional pseudo-spectral (FFT-based) diagnostics with **Xu-style modal auditing**, which is less dependent on repeated physical↔spectral round trips and enables *publication-grade* regularity monitoring.
